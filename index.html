@@ -1,32 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alinux Repository Terminal</title>
+    <style>
+        /* 黑客終端風格配色 */
+        body {
+            background-color: #000;
+            color: #00ff41;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            padding: 50px 20px;
+            margin: 0;
+        }
+
+        .terminal {
+            width: 100%;
+            max-width: 800px;
+            border: 1px solid #00ff41;
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.15);
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 1px dashed #00ff41;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 { margin: 0; font-size: 1.5em; letter-spacing: 2px; }
+        .sub { font-size: 0.8em; opacity: 0.7; margin-top: 5px; }
+
+        /* 套件列表 */
+        #package-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pkg-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #111;
+            transition: background 0.2s;
+        }
+
+        .pkg-item:hover {
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        .pkg-name { font-weight: bold; }
+        
+        /* 下載按鈕 */
+        .download-btn {
+            color: #000;
+            background: #00ff41;
+            text-decoration: none;
+            padding: 3px 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            border-radius: 1px;
+        }
+
+        .download-btn:hover {
+            background: #fff;
+            box-shadow: 0 0 8px #fff;
+        }
+
+        .status-bar {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px dashed #333;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .error { color: #ff3e3e; border: 1px solid #ff3e3e; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="header">
+        <h1>🛰️ ALINUX_REPO_v1.1</h1>
+        <div class="sub">CORE DATABASE SYSTEM: ONLINE</div>
+    </div>
+
+    <ul id="package-list">
+        <li>[SYSTEM] 正在讀取 info/package.list...</li>
+    </ul>
+
+    <div class="status-bar">
+        > 用法: apm install [套件名]<br>
+        > 來源: GitHub Pages / Alinux Project
+    </div>
+</div>
+
 <script>
     const listElement = document.getElementById('package-list');
-    
-    // 指向 info 資料夾下的清單
-    fetch('info/package.list?t=' + new Date().getTime())
-        .then(res => {
-            if (!res.ok) throw new Error("找不到 info/package.list");
-            return res.text();
+
+    // 抓取 info 資料夾下的清單，並加上隨機參數避免快取
+    fetch('info/package.list?cache=' + Math.random())
+        .then(response => {
+            // 關鍵檢查：如果不是 HTTP 200，就視為失敗
+            if (!response.ok) {
+                throw new Error(`找不到清單檔案 (HTTP ${response.status})`);
+            }
+            return response.text();
         })
         .then(text => {
+            // 處理純文字清單：移除空白列，並排除包含 HTML 標籤的內容（防範 404 誤讀）
             const packages = text.split('\n')
-                                 .map(name => name.trim())
-                                 .filter(name => name.length > 0 && !name.includes('<'));
+                                 .map(line => line.trim())
+                                 .filter(line => line.length > 0 && !line.includes('<'));
 
             if (packages.length === 0) {
-                listElement.innerHTML = "<li>[提示] 倉庫清單目前為空。</li>";
+                listElement.innerHTML = "<li>[!] 目前無可用套件清單。</li>";
                 return;
             }
 
-            listElement.innerHTML = '';
+            listElement.innerHTML = ''; // 清空載入中文字
+
             packages.forEach(name => {
                 const li = document.createElement('li');
                 li.className = 'pkg-item';
-                // 下載連結依然指向 packages/ 資料夾
-                li.innerHTML = `<span>> ${name}.aip</span><a href="packages/${name}.aip" class="download-btn">GET</a>`;
+                li.innerHTML = `
+                    <span class="pkg-name">> ${name}.aip</span>
+                    <a href="packages/${name}.aip" class="download-btn">DOWNLOAD</a>
+                `;
                 listElement.appendChild(li);
             });
         })
         .catch(err => {
-            listElement.innerHTML = `<li style="color:red;">[錯誤] ${err.message}</li>`;
+            listElement.innerHTML = `<li class="error">[ERROR] ${err.message}</li>`;
         });
 </script>
+
+</body>
+</html>
